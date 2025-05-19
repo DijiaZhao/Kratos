@@ -72,6 +72,8 @@ class DataLogger():
         AlgorithmName = self.OptimizationSettings["optimization_algorithm"]["name"].GetString()
         if AlgorithmName == "steepest_descent":
             return ValueLoggerSteepestDescent( self.Communicator, self.OptimizationSettings )
+        elif AlgorithmName == "steepest_descent_initial_filtering":
+            return ValueLoggerSteepestDescent( self.Communicator, self.OptimizationSettings )
         elif AlgorithmName == "penalized_projection":
             return ValueLoggerPenalizedProjection( self.Communicator, self.OptimizationSettings )
         elif AlgorithmName == "gradient_projection":

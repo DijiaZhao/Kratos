@@ -32,6 +32,7 @@ class ValueLoggerSteepestDescent( ValueLogger ):
             row.append("{:>13s}".format("df_rel[%]"))
             row.append("{:>13s}".format("norm_df"))
             row.append("{:>13s}".format("step_size"))
+            row.append("{:>13s}".format("cal_count"))
             row.append("{:>25s}".format("time_stamp"))
             historyWriter.writerow(row)
 
@@ -58,6 +59,7 @@ class ValueLoggerSteepestDescent( ValueLogger ):
 
             row.append(" {:> .5E}".format(self.history["norm_objective_gradient"][self.current_index]))
             row.append(" {:> .5E}".format(self.history["step_size"][self.current_index]))
+            row.append(" {:> .5E}".format(self.history["line_search_evaluations_count"][self.current_index]))
             row.append("{:>25}".format(Timer().GetTimeStamp()))
             historyWriter.writerow(row)
 

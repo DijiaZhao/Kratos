@@ -35,6 +35,14 @@ class AlgorithmSteepestDescent(OptimizationAlgorithm):
                 "line_search_type"           : "manual_stepping",
                 "normalize_search_direction" : true,
                 "step_size"                  : 1.0,
+                "parameters"                 : {
+                                                "mu1": 1e-4,
+                                                "mu2": 0.9,
+                                                "sigma": 2,   
+                                                "max_iterations": 20,
+                                                "min_alpha": 1e-1,
+                                                "max_alpha": 1.0  
+                                                },
                 "estimation_tolerance"       : 0.1,
                 "increase_factor"            : 1.1,
                 "max_increase_factor"        : 10.0
@@ -68,9 +76,18 @@ class AlgorithmSteepestDescent(OptimizationAlgorithm):
         self.step_size = self.algorithm_settings["line_search"]["step_size"].GetDouble()
         self.increase_factor = self.algorithm_settings["line_search"]["increase_factor"].GetDouble()
         self.max_step_size = self.step_size*self.algorithm_settings["line_search"]["max_increase_factor"].GetDouble()
+        self.mu1 = self.algorithm_settings["line_search"]["parameters"]["mu1"].GetDouble()
+        self.mu2 = self.algorithm_settings["line_search"]["parameters"]["mu2"].GetDouble()
+        self.sigma = self.algorithm_settings["line_search"]["parameters"]["sigma"].GetDouble()
+        self.max_iterations_line_search = self.algorithm_settings["line_search"]["parameters"]["max_iterations"].GetInt()
+        self.min_alpha = self.algorithm_settings["line_search"]["parameters"]["min_alpha"].GetDouble()
+        self.max_alpha = self.algorithm_settings["line_search"]["parameters"]["max_alpha"].GetDouble()
 
         self.optimization_model_part = model_part_controller.GetOptimizationModelPart()
         self.optimization_model_part.AddNodalSolutionStepVariable(KSO.SEARCH_DIRECTION)
+
+        # Counter for object value and gradient calculations during line search method computations
+        self.line_search_evaluation_count_per_iteration = 0
 
     # --------------------------------------------------------------------------
     def CheckApplicability(self):
@@ -217,6 +234,7 @@ class AlgorithmSteepestDescent(OptimizationAlgorithm):
         additional_values_to_log = {}
         additional_values_to_log["step_size"] = self.step_size
         additional_values_to_log["norm_objective_gradient"] = self.norm_objective_gradient
+        additional_values_to_log["line_search_evaluations_count"] = self.line_search_evaluation_count_per_iteration
         self.data_logger.LogSensitivityHeatmap(self.optimization_iteration, self.mapper)
         self.data_logger.LogCurrentValues(self.optimization_iteration, additional_values_to_log)
         self.data_logger.LogCurrentDesign(self.optimization_iteration)

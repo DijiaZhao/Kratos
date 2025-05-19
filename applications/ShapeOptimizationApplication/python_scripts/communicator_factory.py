@@ -84,7 +84,17 @@ class Communicator:
 
         standardized_gradient = self.__translateGradientToStandardForm(response_id, gradient)
         self.__storeStandardizedGradient(response_id, standardized_gradient)
+    
+    # --------------------------------------------------------------------------
+    def getStandardizedGradientWithoutStorage(self, response_id, gradient):
+        dimension = len(next(iter(gradient.values())))
+        if dimension == 1:
+            gradient = {key: [value[0], 0.0, 0.0] for key, value in gradient.items()}
+        elif dimension == 2:
+            gradient = {key: [value[0], value[1], 0.0] for key, value in gradient.items()}
 
+        standardized_gradient = self.__translateGradientToStandardForm(response_id, gradient)
+        return standardized_gradient
     # --------------------------------------------------------------------------
     def getValue(self, response_id):
         if self.list_of_responses[response_id]["value"] is None:

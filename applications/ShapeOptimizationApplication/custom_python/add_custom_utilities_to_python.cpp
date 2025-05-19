@@ -192,6 +192,8 @@ void  AddCustomUtilitiesToPython(pybind11::module& m)
         // For running unconstrained descent methods
         // ----------------------------------------------------------------
         .def_static("ComputeSearchDirectionSteepestDescent", &OptimizationUtilities::ComputeSearchDirectionSteepestDescent)
+        // Used in line search
+        .def_static("ComputeSearchDirectionSteepestDescentLineSearch", &OptimizationUtilities::ComputeSearchDirectionSteepestDescentLineSearch)
         // ----------------------------------------------------------------
         // For running penalized projection method
         // ----------------------------------------------------------------
@@ -201,6 +203,9 @@ void  AddCustomUtilitiesToPython(pybind11::module& m)
         // General optimization operations
         // ----------------------------------------------------------------
         .def_static("ComputeControlPointUpdate", &OptimizationUtilities::ComputeControlPointUpdate)
+        // Used in line search
+        .def_static("NormalizeSearchDirectionLineSearch", &OptimizationUtilities::NormalizeSearchDirectionLineSearch)
+        .def_static("NormalizeSearchDirection", &OptimizationUtilities::NormalizeSearchDirection)
         .def_static("AddFirstVariableToSecondVariable", &OptimizationUtilities::AddFirstVariableToSecondVariable)
         .def_static("ComputeL2NormOfNodalVariable", [](ModelPart& rModelPart, const Variable< double >& rVariable){
                                                         return OptimizationUtilities::ComputeL2NormOfNodalVariable(rModelPart, rVariable);

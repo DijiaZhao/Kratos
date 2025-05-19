@@ -110,6 +110,14 @@ class Analyzer(AnalyzerBaseClass):
         self.__ResetPossibleShapeModificationsFromAnalysis()
 
     # --------------------------------------------------------------------------
+    def AnalyzeDesignGetResultDirectly(self, current_design, unique_iterator, communicator, calculate_gradient):
+        value = self.internal_analyzer.AnalyzeDesignGetResultDirectly(current_design, unique_iterator, communicator, calculate_gradient)
+        #self.external_analyzer.AnalyzeDesignAndReportToCommunicator(current_design, unique_iterator, communicator)
+
+        self.__ResetPossibleShapeModificationsFromAnalysis()
+        return value
+
+    # --------------------------------------------------------------------------
     def FinalizeAfterOptimizationLoop(self):
         self.internal_analyzer.FinalizeAfterOptimizationLoop()
         self.external_analyzer.FinalizeAfterOptimizationLoop()

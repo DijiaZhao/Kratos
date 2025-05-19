@@ -55,6 +55,42 @@ void OptimizationUtilities::ComputeControlPointUpdate(ModelPart& rModelPart, con
     KRATOS_CATCH("");
 }
 
+void OptimizationUtilities::NormalizeSearchDirection(ModelPart& rModelPart)
+{
+    KRATOS_TRY;
+
+    // Normalize search direction
+    const double max_norm_search_dir = ComputeMaxNormOfNodalVariable(rModelPart, SEARCH_DIRECTION);
+    if(max_norm_search_dir>1e-10)
+        for (auto & node_i : rModelPart.Nodes())
+        {
+            array_3d& search_dir = node_i.FastGetSolutionStepValue(SEARCH_DIRECTION);
+            search_dir/=max_norm_search_dir;
+        }
+    else
+        KRATOS_WARNING("ShapeOpt::NormalizeSearchDirection") << "Normalization of search direction by max norm activated but max norm is < 1e-10. Hence normalization is omitted!" << std::endl;
+
+    KRATOS_CATCH("");
+}
+
+void OptimizationUtilities::NormalizeSearchDirectionLineSearch(ModelPart& rModelPart)
+{
+    KRATOS_TRY;
+
+    // Normalize search direction
+    const double max_norm_search_dir = ComputeMaxNormOfNodalVariable(rModelPart, SEARCH_DIRECTION_LINE_SEARCH);
+    if(max_norm_search_dir>1e-10)
+        for (auto & node_i : rModelPart.Nodes())
+        {
+            array_3d& search_dir = node_i.FastGetSolutionStepValue(SEARCH_DIRECTION_LINE_SEARCH);
+            search_dir/=max_norm_search_dir;
+        }
+    else
+        KRATOS_WARNING("ShapeOpt::NormalizeSearchDirection") << "Normalization of search direction by max norm activated but max norm is < 1e-10. Hence normalization is omitted!" << std::endl;
+
+    KRATOS_CATCH("");
+}
+
 void OptimizationUtilities::AddFirstVariableToSecondVariable( ModelPart& rModelPart, const Variable<array_3d> &rFirstVariable, const Variable<array_3d> &rSecondVariable )
 {
     for (auto & node_i : rModelPart.Nodes())
@@ -121,6 +157,23 @@ void OptimizationUtilities::ComputeSearchDirectionSteepestDescent(ModelPart& rMo
     for (auto & node_i : rModelPart.Nodes())
     {
         node_i.FastGetSolutionStepValue(SEARCH_DIRECTION) = -1.0 * node_i.FastGetSolutionStepValue(DF1DX_MAPPED);
+    }
+
+    KRATOS_CATCH("");
+}
+
+void OptimizationUtilities::ComputeSearchDirectionSteepestDescentLineSearch(ModelPart& rModelPart)
+{
+    KRATOS_TRY;
+
+    // Some output for information
+    KRATOS_INFO("") << std::endl;
+    KRATOS_INFO("ShapeOpt") << "No constraints given or active. The negative objective gradient is chosen as search direction..." << std::endl;
+
+    // search direction is negative of filtered gradient
+    for (auto & node_i : rModelPart.Nodes())
+    {
+        node_i.FastGetSolutionStepValue(SEARCH_DIRECTION_LINE_SEARCH) = -1.0 * node_i.FastGetSolutionStepValue(DF1DX_LINE_SEARCH_MAPPED);
     }
 
     KRATOS_CATCH("");

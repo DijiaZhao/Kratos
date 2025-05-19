@@ -107,6 +107,49 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
             self.model_part_controller.SetDeformationVariablesToZero()
 
     # --------------------------------------------------------------------------
+    def AnalyzeDesignGetResultDirectly(self, currentDesign, optimizationIteration, communicator, calculate_gradient):
+        optimization_model_part = self.model_part_controller.GetOptimizationModelPart()
+
+        time_before_analysis = optimization_model_part.ProcessInfo.GetValue(KM.TIME)
+        step_before_analysis = optimization_model_part.ProcessInfo.GetValue(KM.STEP)
+        delta_time_before_analysis = optimization_model_part.ProcessInfo.GetValue(KM.DELTA_TIME)
+
+        for identifier, response in self.response_functions.items():
+
+            # Reset step/time iterators such that they match the optimization iteration after calling CalculateValue (which internally calls CloneTimeStep)
+            optimization_model_part.ProcessInfo.SetValue(KM.STEP, step_before_analysis-1)
+            optimization_model_part.ProcessInfo.SetValue(KM.TIME, time_before_analysis-1)
+            optimization_model_part.ProcessInfo.SetValue(KM.DELTA_TIME, 0)
+
+            # now we scope in to the directory where response operations are done
+            with IterationScope(identifier, optimizationIteration, response.IsEvaluatedInFolder()):
+                response.UpdateDesign(optimization_model_part, KM.SHAPE_SENSITIVITY)
+
+                response.InitializeSolutionStep()
+
+                # response values
+                response.CalculateValue()
+                value = response.GetValue()
+                
+                if calculate_gradient:
+                    # response gradients
+                    response.CalculateGradient()               
+                    standardized_gradient = communicator.getStandardizedGradientWithoutStorage(identifier, response.GetNodalGradient(KM.SHAPE_SENSITIVITY))
+                else:
+                    standardized_gradient = None
+                    
+                response.FinalizeSolutionStep()
+
+            # Clear results or modifications on model part
+            optimization_model_part.ProcessInfo.SetValue(KM.STEP, step_before_analysis)
+            optimization_model_part.ProcessInfo.SetValue(KM.TIME, time_before_analysis)
+            optimization_model_part.ProcessInfo.SetValue(KM.DELTA_TIME, delta_time_before_analysis)
+
+            self.model_part_controller.SetMeshToReferenceMesh()
+            self.model_part_controller.SetDeformationVariablesToZero()
+
+        return value, standardized_gradient
+    # --------------------------------------------------------------------------
     def FinalizeAfterOptimizationLoop( self ):
         for response in self.response_functions.values():
             response.Finalize()

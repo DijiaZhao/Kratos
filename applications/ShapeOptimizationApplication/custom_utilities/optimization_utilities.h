@@ -84,6 +84,13 @@ public:
     // General optimization operations
     // ==============================================================================
     static void ComputeControlPointUpdate(ModelPart& rModelPart, const double StepSize, const bool Normalize);
+    
+    // --------------------------------------------------------------------------
+    // Used in line search
+    static void NormalizeSearchDirectionLineSearch(ModelPart& rModelPart);
+    
+    // --------------------------------------------------------------------------
+    static void NormalizeSearchDirection(ModelPart& rModelPart);
 
     // --------------------------------------------------------------------------
     static void AddFirstVariableToSecondVariable( ModelPart& rModelPart, const Variable<array_3d> &rFirstVariable, const Variable<array_3d> &rSecondVariable );
@@ -104,6 +111,10 @@ public:
     // For running unconstrained descent methods
     // ==============================================================================
     static void ComputeSearchDirectionSteepestDescent(ModelPart& rModelPart);
+    
+    // --------------------------------------------------------------------------
+    // Used in line search
+    static void ComputeSearchDirectionSteepestDescentLineSearch(ModelPart& rModelPart);
 
     // ==============================================================================
     // For running penalized projection method
