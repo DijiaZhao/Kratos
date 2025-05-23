@@ -498,6 +498,9 @@ class AlgorithmSteepestDescentInitialFiltering(OptimizationAlgorithm):
         new_objective_value, new_gradient_dict = self.analyzer.AnalyzeDesignGetResultDirectly(self.optimization_model_part, self.optimization_iteration, self.communicator, calculate_gradient)
         
         if not calculate_gradient:
+            # Restore the original mesh state
+            mesh_utilities.RevertMeshUpdateAccordingInputVariable(KSO.SHAPE_UPDATE)
+            mesh_utilities.SetReferenceMeshToMesh() 
             return new_objective_value
         else:
             # Save gradient data into KSO.DF1DX_LINE_SEARCH
