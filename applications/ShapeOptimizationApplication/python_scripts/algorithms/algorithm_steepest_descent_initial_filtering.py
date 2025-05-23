@@ -175,14 +175,16 @@ class AlgorithmSteepestDescentInitialFiltering(OptimizationAlgorithm):
             # Timing for search direction and mapped gradient computation differs by line search method:
             # For adaptive_stepping: Uses search direction and mapped gradient from previous iteration (k-1)
             # For armijo/strong_wolfe: Computes fresh search direction and mapped gradient at current iteration (k)     
-            if self.line_search_type in ["armijo", "strong_wolfe"]:
+            if self.line_search_type in ["armijo_backtracking", "dynamic_armijo", "strong_wolfe"]:
                 self.__computeGradientMappingAndSearchDirection()  
 
             # Execute appropriate line search method
             if self.line_search_type == "adaptive_stepping" and self.optimization_iteration > 1:
                 self.__adjustStepSize()
-            elif self.line_search_type == "armijo" and self.optimization_iteration > 1:
-                self.__ArmijoLineSearch()
+            elif self.line_search_type == "armijo_backtracking" and self.optimization_iteration > 1:
+                self.__ArmijoLineSearchBacktracking()
+            elif self.line_search_type == "dynamic_armijo" and self.optimization_iteration > 1:
+                self.__ArmijoLineSearchDynamic()
             elif self.line_search_type == "strong_wolfe" and self.optimization_iteration > 1:
                 self.__strongWolfeLineSearch()
 
@@ -273,11 +275,11 @@ class AlgorithmSteepestDescentInitialFiltering(OptimizationAlgorithm):
         self.step_size = new_a
 
    # --------------------------------------------------------------------------
-    def __ArmijoLineSearch(self):
+    def __ArmijoLineSearchBacktracking(self):
         """
         Adjust the step size using Armijo's condition: φ(α) ≤ φ(0) + μ₁αφ'(0)
         """
-        KM.Logger.PrintInfo("ShapeOpt", "ARMIJO LINE SEARCH PROCEDURE")
+        KM.Logger.PrintInfo("ShapeOpt", "ARMIJO LINE SEARCH WITH BACKTRACKING ALGORITHM PROCEDURE")
         
         # Reset per-iteration counter
         self.line_search_f_df_evaluation_count_per_iteration = 0
@@ -315,6 +317,58 @@ class AlgorithmSteepestDescentInitialFiltering(OptimizationAlgorithm):
         self.step_size = min(max(alpha, self.min_alpha), self.max_alpha)
         KM.Logger.PrintWarning("ShapeOpt", f"Line search max iterations reached! Final alpha={self.step_size}")
     
+   # --------------------------------------------------------------------------
+    def __ArmijoLineSearchDynamic(self):
+        """
+        Adjust the step size using Armijo's condition: φ(α) ≤ φ(0) + μ₁αφ'(0)
+        """
+        KM.Logger.PrintInfo("ShapeOpt", "DYNAMIC ARMIJO LINE SEARCH PROCEDURE")
+        
+        # Reset per-iteration counter
+        self.line_search_f_df_evaluation_count_per_iteration = 0
+
+        # Get current objective value φ(0) from current k step
+        phi_0 = self.communicator.getStandardizedValue(self.objectives[0]["identifier"].GetString())  
+
+        # Compute the dot product of gradient and search direction (φ'(0)) using the data from current k step
+        phi_0_prime = 0.0
+        for node in self.design_surface.Nodes:
+            search_direction = node.GetSolutionStepValue(KSO.SEARCH_DIRECTION)
+            gradient = node.GetSolutionStepValue(KSO.DF1DX_MAPPED)
+            phi_0_prime += gradient[0] * search_direction[0] + gradient[1] * search_direction[1] + gradient[2] * search_direction[2]      
+
+        KM.Logger.Print("Initial values - phi_0:", phi_0, "phi_0_prime:", phi_0_prime)
+
+        # Use initial step size from settings
+        initial_step_size = self.algorithm_settings["line_search"]["step_size"].GetDouble()
+        alpha = initial_step_size   
+
+        # Armijo loop
+        for iteration in range(self.max_iterations_line_search):          
+            phi_2 = self.__evaluateObjectiveValueandGradientAtNewPoint(alpha, False)
+            
+            # Check Armijo condition
+            if phi_2 <= phi_0 + self.mu1 * alpha * phi_0_prime:
+                # Current alpha satisfies condition, increase it
+                for _ in range(self.max_iterations_line_search):
+                    next_alpha = alpha * self.sigma
+                    phi_next = self.__evaluateObjectiveValueandGradientAtNewPoint(next_alpha, False)
+                    
+                    if phi_next <= phi_0 + self.mu1 * next_alpha * phi_0_prime:
+                        alpha = next_alpha
+                    else:
+                        break  
+                
+                self.step_size = alpha
+                return
+            else:
+                # Current alpha doesn't satisfy condition, reduce it
+                alpha = max(alpha / self.sigma, self.min_alpha)
+                
+        # If we exhaust iterations, use the best alpha found
+        self.step_size = min(max(alpha, self.min_alpha), self.max_alpha)
+        KM.Logger.PrintWarning("ShapeOpt", f"Line search max iterations reached! Final alpha={self.step_size}")
+
     # --------------------------------------------------------------------------
     def __strongWolfeLineSearch(self):
         """
@@ -564,7 +618,7 @@ class AlgorithmSteepestDescentInitialFiltering(OptimizationAlgorithm):
         
         # For armijo/strong_wolfe:
         # - Uses the current step (k) values (including DF1DX_MAPPED and the search direction), which are precomputed before calling the line search methods
-        if self.line_search_type not in ["armijo", "strong_wolfe"]:
+        if self.line_search_type not in ["armijo_backtracking", "dynamic_armijo", "strong_wolfe"]:
             self.__computeGradientMappingAndSearchDirection()    
 
         # Compute the control point update on current model
